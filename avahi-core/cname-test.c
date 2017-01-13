@@ -224,7 +224,7 @@ static void avahi_test_initialize(char *test_case) {
 
 int main(int argc, char *argv[]) {
     int error;
-    struct timeval tv;
+    struct AvahiTimeVal tv;
 
     AvahiSHostNameResolver *hnr;
     AvahiServerConfig config;
