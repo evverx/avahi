@@ -10,7 +10,7 @@ case "$1" in
         sed -i -e '/^#\s*deb-src.*\smain\s\+restricted/s/^#//' /etc/apt/sources.list
         apt-get update -y
         apt-get build-dep -y avahi
-        apt-get install -y libevent-dev qtbase5-dev gcc clang avahi-daemon ncat
+        apt-get install -y libevent-dev qtbase5-dev gcc clang llvm avahi-daemon ncat
 
         # install dfuzzer to catch issues like https://github.com/lathiat/avahi/issues/375
         apt-get install -y libglib2.0-dev meson
@@ -34,6 +34,11 @@ case "$1" in
             export CFLAGS="-fsanitize=address,undefined -g -fno-omit-frame-pointer"
             export ASAN_OPTIONS=strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1
             export UBSAN_OPTIONS=print_stacktrace=1:print_summary=1:halt_on_error=1
+
+            if [[ "$CC" == clang ]]; then
+                # get around an avahi build system bug
+                sed -i 's/check_inconsistencies=yes/check_inconsistencies=no/' common/acx_pthread.m4
+            fi
         fi
 
         ./bootstrap.sh --enable-tests --prefix=/usr
