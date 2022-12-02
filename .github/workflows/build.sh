@@ -10,9 +10,7 @@ case "$1" in
         sed -i -e '/^#\s*deb-src.*\smain\s\+restricted/s/^#//' /etc/apt/sources.list
         apt-get update -y
         apt-get build-dep -y avahi
-        apt-get install -y libevent-dev qtbase5-dev
-        apt-get install -y gcc clang
-        apt-get install -y avahi-daemon
+        apt-get install -y libevent-dev qtbase5-dev gcc clang avahi-daemon ncat
 
         # install dfuzzer to catch issues like https://github.com/lathiat/avahi/issues/375
         apt-get install -y libglib2.0-dev meson
@@ -21,6 +19,14 @@ case "$1" in
         meson --buildtype=release build
         ninja -C ./build -v
         ninja -C ./build install
+        popd
+
+        # install radamsa to catch issues like https://github.com/lathiat/avahi/pull/330
+        # and https://github.com/lathiat/avahi/issues/338
+        git clone --depth=1 https://gitlab.com/akihe/radamsa
+        pushd radamsa
+        make -j"$(nproc)" V=1
+        make install
         popd
         ;;
     build)
@@ -46,10 +52,26 @@ case "$1" in
             journalctl -u avahi-daemon -e
             exit 1
         fi
+
+        cat <<'EOL' >commands
+HELP
+RESOLVE-HOSTNAME a
+RESOLVE-HOSTNAME-IPV6 a.
+RESOLVE-HOSTNAME-IPV4 a..b
+RESOLVE-ADDRESS 127.0.0.1
+BROWSE-DNS-SERVERS
+BROWSE-DNS-SERVERS-IPV4
+BROWSE-DNS-SERVERS-IPV6
+EOL
+
+        timeout 60 bash -c 'while :; do radamsa commands | ncat -U /run/avahi-daemon/socket; done' || true
+
         if ! dfuzzer -v -n org.freedesktop.Avahi; then
             journalctl -u avahi-daemon -b
             exit 1
         fi
+
+        # TODO: look for coredumps and ASan/UBsan backtraces
         ;;
     *)
         printf '%s' "Unknown command '$1'" >&2
