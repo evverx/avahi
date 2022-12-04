@@ -4,13 +4,14 @@ set -eux
 set -o pipefail
 
 export ASAN_UBSAN=${ASAN_UBSAN:-false}
+export COVERAGE=${COVERAGE:-false}
 
 case "$1" in
     install-build-deps)
         sed -i -e '/^#\s*deb-src.*\smain\s\+restricted/s/^#//' /etc/apt/sources.list
         apt-get update -y
         apt-get build-dep -y avahi
-        apt-get install -y libevent-dev qtbase5-dev gcc clang llvm avahi-daemon ncat
+        apt-get install -y libevent-dev qtbase5-dev gcc clang llvm avahi-daemon ncat lcov
 
         # install dfuzzer to catch issues like https://github.com/lathiat/avahi/issues/375
         apt-get install -y libglib2.0-dev meson
@@ -41,9 +42,21 @@ case "$1" in
             fi
         fi
 
+        if [[ "$COVERAGE" == true ]]; then
+            export CFLAGS="--coverage"
+        fi
+
         ./bootstrap.sh --enable-tests --prefix=/usr
         make -j"$(nproc)" V=1
         make check VERBOSE=1
+
+        if [[ "$COVERAGE" == true ]]; then
+            lcov --directory . --capture --initial --output-file coverage.info.initial
+            lcov --directory . --capture --output-file coverage.info.run --no-checksum --rc lcov_branch_coverage=1
+            lcov -a coverage.info.initial -a coverage.info.run --rc lcov_branch_coverage=1 -o coverage.info.raw
+            lcov --extract coverage.info.raw "$(pwd)/*" --rc lcov_branch_coverage=1 --output-file coverage.info
+            exit 0
+        fi
 
         if [[ "$ASAN_UBSAN" == true ]]; then
             sed -i "/\[Service\]/aEnvironment=ASAN_OPTIONS=$ASAN_OPTIONS UBSAN_OPTIONS=$UBSAN_OPTIONS" avahi-daemon/avahi-daemon.service
