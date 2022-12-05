@@ -21,6 +21,7 @@ case "$1" in
         ninja -C ./build -v
         ninja -C ./build install
         popd
+        rm -rf dfuzzer
 
         # install radamsa to catch issues like https://github.com/lathiat/avahi/pull/330
         # and https://github.com/lathiat/avahi/issues/338
@@ -29,6 +30,7 @@ case "$1" in
         make -j"$(nproc)" V=1
         make install
         popd
+        rm -rf radamsa
         ;;
     build)
         if [[ "$ASAN_UBSAN" == true ]]; then
