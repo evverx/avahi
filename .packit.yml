@@ -22,6 +22,7 @@ actions:
     # line 366: It's not recommended to have unversioned Obsoletes: Obsoletes:        howl-libs
     # line 376: It's not recommended to have unversioned Obsoletes: Obsoletes:        howl-devel
     - "sed -i '/^Obsoletes: *howl/d' .packit_rpm/avahi.spec"
+    - "sed -i '/^%configure /a--enable-tests \\\\' .packit_rpm/avahi.spec"
 
 jobs:
 - job: copr_build
