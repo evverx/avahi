@@ -2,9 +2,9 @@
 name: Coverity
 
 on:
-  schedule:
-    # Run Coverity daily at midnight
-    - cron:  '0 0 * * *'
+  pull_request:
+    branches:
+      - master
 
 permissions:
   contents: read
@@ -12,8 +12,8 @@ permissions:
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-22.04
-    if: github.repository == 'avahi/avahi'
+    runs-on: ubuntu-24.04
+    if: github.repository == 'evverx/avahi'
     steps:
       - name: Repository checkout
         uses: actions/checkout@v4
