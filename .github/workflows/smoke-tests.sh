@@ -32,6 +32,25 @@ for p in avahi-{browse,daemon,publish,resolve,set-host-name}; do
     "$p" -V
 done
 
+mkdir -p /etc/mdns.d
+
+cat <<'EOL' >/etc/mdns.d/bogus-type.service
+name Bogus Service
+type bogus.service
+EOL
+
+cat <<'EOL' >/etc/mdns.d/bogus-ptr.service
+name Bogus PTR
+type _ssh._tcp
+target bogus.ptr
+EOL
+
+cat <<'EOL' >/etc/mdns.d/same-service.service
+type _qotd._tcp
+port 1234
+EOL
+
+run systemctl start mdnsd
 run systemctl start avahi-daemon
 run systemctl start avahi-dnsconfd
 
