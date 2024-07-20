@@ -44,6 +44,14 @@ case "$1" in
 
         git clone https://gitlab.com/akihe/radamsa
         (cd radamsa && make -j"$(nproc)" && make install)
+
+        git clone https://github.com/troglobit/mdnsd
+        pushd mdnsd
+        ./autogen.sh
+        ./configure --prefix=/usr --disable-doc
+        make -j"$(nproc)"
+        make install
+        popd
         ;;
     build)
         if [[ "$ASAN_UBSAN" == true ]]; then
