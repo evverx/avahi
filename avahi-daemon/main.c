@@ -1520,6 +1520,7 @@ static void init_rand_seed(void) {
 int main(int argc, char *argv[]) {
     int r = 255;
     int wrote_pid_file = 0;
+    int unused;
 
     avahi_set_log_function(log_function);
 
