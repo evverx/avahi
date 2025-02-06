@@ -60,9 +60,6 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
-    env:
-      CC: "gcc"
-      DISTCHECK: "true"
     steps:
       - name: Repository checkout
         uses: actions/checkout@v4
@@ -73,6 +70,6 @@ jobs:
           architecture: 'x86_64'
           run: |
             sudo -E pkg install -y gettext-runtime gettext-tools gmake intltool \
-            gobject-introspection pkgconf expat libdaemon dbus-glib dbus gdbm \
-            libevent glib
-            sudo CC=gcc DISTCHECK=true .github/workflows/build.sh build
+            gobject-introspection pkgconf expat libdaemon dbus-glib dbus gdbm py311-gdbm \
+            libevent glib autotools gcc qt5-core qt5-buildtools gtk3
+            sudo CC=gcc DISTCHECK=false .github/workflows/build.sh build
