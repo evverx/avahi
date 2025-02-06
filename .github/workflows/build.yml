@@ -75,4 +75,4 @@ jobs:
             sudo -E pkg install -y gettext-runtime gettext-tools gmake intltool \
             gobject-introspection pkgconf expat libdaemon dbus-glib dbus gdbm \
             libevent glib
-            sudo -E .github/workflows/build.sh build
+            sudo CC=gcc DISTCHECK=true .github/workflows/build.sh build
