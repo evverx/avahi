@@ -32,11 +32,10 @@ case `uname -s` in
     FreeBSD)
     cp /usr/local/share/aclocal/libtool15.m4 common
     cp /usr/local/share/aclocal/pkg.m4 common
-    export LIBTOOLIZE=/usr/local/bin/libtoolize15
     export CFLAGS="-I/usr/local/include"
-    export LDFLAGS="-L/usr/local/lib"
+    export LDFLAGS="-L/usr/local/lib -lintl"
     export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig"
-    FLAGS="$FLAGS --prefix=/opt/ --with-distro=none --disable-python --disable-dbus --disable-glib --disable-gtk --disable-libevent"
+    FLAGS="$FLAGS --prefix=/opt/ --with-distro=freebsd --disable-pygobject --disable-gobject --disable-python-dbus --disable-mono --disable-glib --disable-libevent --disable-libsystemd --disable-manpages"
     ;;
     NetBSD)
     export LIBTOOLIZE=libtoolize

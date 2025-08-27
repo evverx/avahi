@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ['cpp', 'python', 'csharp']
+        language: ['cpp', 'python', 'csharp', 'actions']
 
     steps:
     - name: Checkout repository
