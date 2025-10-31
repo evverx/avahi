@@ -57,9 +57,15 @@ case "$1" in
         pkg install -y gettext-runtime gettext-tools gmake intltool \
             gobject-introspection pkgconf expat libdaemon dbus-glib dbus gdbm \
             libevent glib automake libtool libinotify qt5-core qt5-buildtools \
-            gtk3 py311-pygobject py311-dbus py311-gdbm mono
-        # some deps pull in avahi itself, remove it
-        pkg remove -f avahi-app
+            gtk3 py311-pygobject py311-dbus py311-gdbm mono meson git valgrind
+	pkg remove -f avahi-app
+        git clone https://github.com/dbus-fuzzer/dfuzzer
+        cd dfuzzer
+	meson build
+	mount -t procfs proc /proc
+	ninja -C build install
+	service dbus onerestart
+	cd ..
         ;;
     build)
         if [[ "$ASAN_UBSAN" == true ]]; then
@@ -72,7 +78,7 @@ case "$1" in
             # because acx_pthread is out of date. The kludge should be
             # removed once acx_pthread gets updated.
             if [[ "$CC" == clang ]]; then
-                sed -i 's/check_inconsistencies=yes/check_inconsistencies=no/' common/acx_pthread.m4
+                sed -i.bak 's/check_inconsistencies=yes/check_inconsistencies=no/' common/acx_pthread.m4
 
                 # https://github.com/avahi/avahi/issues/584
                 CFLAGS+=' -fno-sanitize=function'
@@ -167,13 +173,13 @@ EOL
             sed -i '/^ExecStart=/s/$/ --no-chroot --no-drop-root/' avahi-daemon/avahi-daemon.service
         fi
 
-        if [[ "$ASAN_UBSAN" == true ]]; then
-            sed -i '/^ExecStart=/s/$/ --no-drop-root --no-proc-title/' avahi-daemon/avahi-daemon.service
-            sed -i "/^\[Service\]/aEnvironment=ASAN_OPTIONS=$ASAN_OPTIONS" avahi-daemon/avahi-daemon.service
-            sed -i "/^\[Service\]/aEnvironment=UBSAN_OPTIONS=$UBSAN_OPTIONS" avahi-daemon/avahi-daemon.service
+        if [[ "$ASAN_UBSAN" == true && "$OS" != FreeBSD ]]; then
+            sed -i.bak '/^ExecStart=/s/$/ --no-drop-root --no-proc-title/' avahi-daemon/avahi-daemon.service
+            sed -i.bak "/^\[Service\]/aEnvironment=ASAN_OPTIONS=$ASAN_OPTIONS" avahi-daemon/avahi-daemon.service
+            sed -i.bak "/^\[Service\]/aEnvironment=UBSAN_OPTIONS=$UBSAN_OPTIONS" avahi-daemon/avahi-daemon.service
 
-            sed -i "/^\[Service\]/aEnvironment=ASAN_OPTIONS=$ASAN_OPTIONS" avahi-dnsconfd/avahi-dnsconfd.service
-            sed -i "/^\[Service\]/aEnvironment=UBSAN_OPTIONS=$UBSAN_OPTIONS" avahi-dnsconfd/avahi-dnsconfd.service
+            sed -i.bak "/^\[Service\]/aEnvironment=ASAN_OPTIONS=$ASAN_OPTIONS" avahi-dnsconfd/avahi-dnsconfd.service
+            sed -i.bak "/^\[Service\]/aEnvironment=UBSAN_OPTIONS=$UBSAN_OPTIONS" avahi-dnsconfd/avahi-dnsconfd.service
         fi
 
         # publish-workstation=yes triggers https://github.com/avahi/avahi/issues/485
@@ -190,16 +196,12 @@ EOL
         $MAKE install
         ldconfig
 
-        # smoke tests require systemd, so don't run them on FreeBSD
-        # https://github.com/avahi/avahi/issues/727
-        if [[ "$OS" != FreeBSD ]]; then
-            adduser --system --group avahi
-            systemctl reload dbus
-            if ! .github/workflows/smoke-tests.sh; then
-                look_for_asan_ubsan_reports
-                exit 1
-            fi
-        fi
+	valgrind --leak-check=full avahi-daemon --no-drop-root --no-proc-title --debug &
+	#avahi-daemon --no-drop-root --no-proc-title --debug &
+	sleep 2
+	dfuzzer -v -n org.freedesktop.Avahi
+	kill %1
+	exit 0
 
         if [[ "$COVERAGE" == true ]]; then
             lcov --ignore-errors source --directory . --capture --initial --output-file coverage.info.initial

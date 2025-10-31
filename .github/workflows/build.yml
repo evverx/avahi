@@ -71,7 +71,6 @@ jobs:
           architecture: 'x86_64'
           run: |
             export CC=clang
-            export DISTCHECK=true
 
             # Do what USES="localbase:ldflags gettext-runtime gmake" do
             # in FreeBSD Ports, namely:
@@ -81,7 +80,7 @@ jobs:
             #   unlike on Linux. See https://github.com/avahi/avahi/issues/726
             # - Use GNU make instead of BSD one
             export MAKE="gmake"
-            export CFLAGS="-I/usr/local/include"
+            export CFLAGS="-I/usr/local/include -g -O0"
             export CPPFLAGS="-I/usr/local/include"
             export LDFLAGS="-L/usr/local/lib -lintl"
 

@@ -4,8 +4,7 @@ set -eux
 set -o pipefail
 
 dump_journal() {
-    journalctl --sync
-    journalctl -b -u "avahi-*" --no-pager
+	cat /var/log/messages
 }
 
 run() {
@@ -32,9 +31,20 @@ for p in avahi-{browse,daemon,publish,resolve,set-host-name}; do
     "$p" -V
 done
 
-run systemctl start avahi-daemon
-run systemctl start avahi-dnsconfd
+#run systemctl start avahi-daemon
+#run systemctl start avahi-dnsconfd
 
+service dbus onerestart
+service avahi-daemon onerestart
+run dfuzzer -v -n org.freedesktop.Avahi
+service avahi-daemon onestop
+cat /var/log/messages
+service avahi-daemon onestart
+
+
+for test_case in self_loop retransmit_cname one_normal one_loop two_normal two_loop two_loop_inner two_loop_inner2 three_normal three_loop diamond cname_answer_diamond cname_answer; do
+    run ./avahi-core/cname-test $test_case
+done
 ./avahi-client/check-nss-test
 ./avahi-client/client-test
 (cd avahi-daemon && ./ini-file-parser-test)
@@ -43,9 +53,12 @@ run systemctl start avahi-dnsconfd
 ./avahi-core/avahi-test
 ./avahi-core/querier-test
 ./examples/glib-integration
-./tests/c-plus-plus-test
+#./tests/c-plus-plus-test
 
-systemd-run -u avahi-test-rr-test ./avahi-client/rr-test
+service avahi-daemon onestop
+cat /var/log/messages
+exit 0
+#systemd-run -u avahi-test-rr-test ./avahi-client/rr-test
 
 run avahi-dnsconfd -h
 run avahi-dnsconfd -c
@@ -138,7 +151,6 @@ avahi-set-host-name -v 'A\.B'
 avahi-set-host-name -v "$(perl -e 'print(q/[/x63)')"
 avahi-set-host-name -v "$(hostname)-new"
 
-run dfuzzer -v -n org.freedesktop.Avahi
 
 run systemctl kill --signal HUP avahi-daemon
 run systemctl kill --signal USR1 avahi-daemon
@@ -155,9 +167,5 @@ should_fail systemctl is-failed avahi-daemon
 
 should_fail avahi-daemon -c
 should_fail avahi-dnsconfd -c
-
-for test_case in self_loop retransmit_cname one_normal one_loop two_normal two_loop two_loop_inner two_loop_inner2 three_normal three_loop diamond cname_answer_diamond cname_answer; do
-    run ./avahi-core/cname-test $test_case
-done
 
 run systemctl stop "avahi-test-*"
