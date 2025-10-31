@@ -9,6 +9,9 @@ export CFLAGS=${CFLAGS:-"-g -O0"}
 export COVERAGE=${COVERAGE:-false}
 export DISTCHECK=${DISTCHECK:-false}
 export VALGRIND=${VALGRIND:-false}
+export MAKE=${MAKE:-make}
+
+OS=$(uname -s)
 
 look_for_asan_ubsan_reports() {
     journalctl --sync
@@ -91,35 +94,37 @@ case "$1" in
         fi
         export CXXFLAGS="$CFLAGS"
 
-        prefix="/usr"
-        MAKE="make"
-        disable_libsystemd_arg=""
-        disable_manpages_arg=""
+        if [[ "$OS" == FreeBSD ]]; then
+            MAKE="gmake"
+        fi
+
+        AUTOCONF_ARGS=(
+            "--enable-compat-howl"
+            "--enable-compat-libdns_sd"
+            "--enable-core-docs"
+            "--enable-tests"
+            "--localstatedir=/var"
+            "--prefix=/usr"
+            "--runstatedir=/run"
+            "--sysconfdir=/etc"
+        )
 
         if [ "$(type dpkg-architecture)" ]; then
-            libdir="/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+            AUTOCONF_ARGS+=(
+                "--libdir=/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+            )
         fi
 
-        if [[ $(uname -s) = FreeBSD ]]; then
-            prefix="/usr/local"
-            libdir="$prefix/lib"
-            MAKE="gmake"
-            disable_libsystemd_arg="--disable-libsystemd"
-            disable_manpages_arg="--disable-manpages"
+        if [[ "$OS" == FreeBSD ]]; then
+            AUTOCONF_ARGS+=(
+                "--prefix=/usr/local"
+                "--libdir=/usr/local/lib"
+                "--disable-libsystemd"
+                "--disable-manpages"
+            )
         fi
 
-        ./autogen.sh \
-            --enable-compat-howl \
-            --enable-compat-libdns_sd \
-            --enable-core-docs \
-            --enable-tests \
-            --libdir="$libdir" \
-            --localstatedir=/var \
-            --prefix=$prefix \
-            --runstatedir=/run \
-            --sysconfdir=/etc \
-            $disable_libsystemd_arg \
-            $disable_manpages_arg
+        ./autogen.sh "${AUTOCONF_ARGS[@]}"
 
         $MAKE -j"$(nproc)" V=1
 
@@ -128,8 +133,10 @@ case "$1" in
         fi
 
         if [[ "$DISTCHECK" == true ]]; then
-            $MAKE distcheck \
-                DISTCHECK_CONFIGURE_FLAGS="$disable_libsystemd_arg $disable_manpages_arg"
+            if [[ "$OS" == FreeBSD ]]; then
+                export DISTCHECK_CONFIGURE_FLAGS="--disable-libsystemd --disable-manpages"
+            fi
+            $MAKE distcheck
         fi
 
         $MAKE check VERBOSE=1
@@ -184,7 +191,8 @@ EOL
         ldconfig
 
         # smoke tests require systemd, so don't run them on FreeBSD
-        if [[ $(uname -s) != FreeBSD ]]; then
+        # https://github.com/avahi/avahi/issues/727
+        if [[ "$OS" != FreeBSD ]]; then
             adduser --system --group avahi
             systemctl reload dbus
             if ! .github/workflows/smoke-tests.sh; then
