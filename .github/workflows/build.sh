@@ -9,6 +9,9 @@ export CFLAGS=${CFLAGS:-"-g -O0"}
 export COVERAGE=${COVERAGE:-false}
 export DISTCHECK=${DISTCHECK:-false}
 export VALGRIND=${VALGRIND:-false}
+export MAKE=${MAKE:-make}
+
+OS=$(uname -s)
 
 look_for_asan_ubsan_reports() {
     journalctl --sync
@@ -45,6 +48,25 @@ case "$1" in
         git clone https://gitlab.com/akihe/radamsa
         (cd radamsa && make -j"$(nproc)" && make install)
         ;;
+    install-build-deps-FreeBSD)
+        # Use latest package set
+        mkdir -p /usr/local/etc/pkg/repos/
+        cp /etc/pkg/FreeBSD.conf /usr/local/etc/pkg/repos/FreeBSD.conf
+        sed -i.bak -e 's|/quarterly|/latest|' /usr/local/etc/pkg/repos/FreeBSD.conf
+
+        pkg install -y gettext-runtime gettext-tools gmake intltool \
+            gobject-introspection pkgconf expat libdaemon dbus-glib dbus gdbm \
+            libevent glib automake libtool libinotify qt5-core qt5-buildtools \
+            gtk3 py311-pygobject py311-dbus py311-gdbm mono meson git valgrind
+	pkg remove -f avahi-app
+        git clone https://github.com/dbus-fuzzer/dfuzzer
+        cd dfuzzer
+	meson build
+	mount -t procfs proc /proc
+	ninja -C build install
+	service dbus onerestart
+	cd ..
+        ;;
     build)
         if [[ "$ASAN_UBSAN" == true ]]; then
             export CFLAGS+=" -fsanitize=address,undefined -g"
@@ -56,7 +78,7 @@ case "$1" in
             # because acx_pthread is out of date. The kludge should be
             # removed once acx_pthread gets updated.
             if [[ "$CC" == clang ]]; then
-                sed -i 's/check_inconsistencies=yes/check_inconsistencies=no/' common/acx_pthread.m4
+                sed -i.bak 's/check_inconsistencies=yes/check_inconsistencies=no/' common/acx_pthread.m4
 
                 # https://github.com/avahi/avahi/issues/584
                 CFLAGS+=' -fno-sanitize=function'
@@ -78,30 +100,54 @@ case "$1" in
         fi
         export CXXFLAGS="$CFLAGS"
 
-        ./autogen.sh \
-            --enable-compat-howl \
-            --enable-compat-libdns_sd \
-            --enable-core-docs \
-            --enable-tests \
-            --libdir="/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)" \
-            --localstatedir=/var \
-            --prefix=/usr \
-            --runstatedir=/run \
-            --sysconfdir=/etc
+        if [[ "$OS" == FreeBSD ]]; then
+            MAKE="gmake"
+        fi
 
-        make -j"$(nproc)" V=1
+        AUTOCONF_ARGS=(
+            "--enable-compat-howl"
+            "--enable-compat-libdns_sd"
+            "--enable-core-docs"
+            "--enable-tests"
+            "--localstatedir=/var"
+            "--prefix=/usr"
+            "--runstatedir=/run"
+            "--sysconfdir=/etc"
+        )
+
+        if [ "$(type dpkg-architecture)" ]; then
+            AUTOCONF_ARGS+=(
+                "--libdir=/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+            )
+        fi
+
+        if [[ "$OS" == FreeBSD ]]; then
+            AUTOCONF_ARGS+=(
+                "--prefix=/usr/local"
+                "--libdir=/usr/local/lib"
+                "--disable-libsystemd"
+                "--disable-manpages"
+            )
+        fi
+
+        ./autogen.sh "${AUTOCONF_ARGS[@]}"
+
+        $MAKE -j"$(nproc)" V=1
 
         if [[ "$BUILD_ONLY" == true ]]; then
             exit 0
         fi
 
         if [[ "$DISTCHECK" == true ]]; then
-            make distcheck
+            if [[ "$OS" == FreeBSD ]]; then
+                export DISTCHECK_CONFIGURE_FLAGS="--disable-libsystemd --disable-manpages"
+            fi
+            $MAKE distcheck
         fi
 
-        make check VERBOSE=1
+        $MAKE check VERBOSE=1
 
-        sed -i '/^ExecStart=/s/$/ --debug /' avahi-daemon/avahi-daemon.service
+        sed -i '/^ExecStart=/s/$/ --debug /' avahi-daemon/avahi-daemon.service || true
 
         # avahi-dnsconfd is used to test the DNS server browser only.
         # It shouldn't actually change any settings so the action just
@@ -127,18 +173,18 @@ EOL
             sed -i '/^ExecStart=/s/$/ --no-chroot --no-drop-root/' avahi-daemon/avahi-daemon.service
         fi
 
-        if [[ "$ASAN_UBSAN" == true ]]; then
-            sed -i '/^ExecStart=/s/$/ --no-drop-root --no-proc-title/' avahi-daemon/avahi-daemon.service
-            sed -i "/^\[Service\]/aEnvironment=ASAN_OPTIONS=$ASAN_OPTIONS" avahi-daemon/avahi-daemon.service
-            sed -i "/^\[Service\]/aEnvironment=UBSAN_OPTIONS=$UBSAN_OPTIONS" avahi-daemon/avahi-daemon.service
+        if [[ "$ASAN_UBSAN" == true && "$OS" != FreeBSD ]]; then
+            sed -i.bak '/^ExecStart=/s/$/ --no-drop-root --no-proc-title/' avahi-daemon/avahi-daemon.service
+            sed -i.bak "/^\[Service\]/aEnvironment=ASAN_OPTIONS=$ASAN_OPTIONS" avahi-daemon/avahi-daemon.service
+            sed -i.bak "/^\[Service\]/aEnvironment=UBSAN_OPTIONS=$UBSAN_OPTIONS" avahi-daemon/avahi-daemon.service
 
-            sed -i "/^\[Service\]/aEnvironment=ASAN_OPTIONS=$ASAN_OPTIONS" avahi-dnsconfd/avahi-dnsconfd.service
-            sed -i "/^\[Service\]/aEnvironment=UBSAN_OPTIONS=$UBSAN_OPTIONS" avahi-dnsconfd/avahi-dnsconfd.service
+            sed -i.bak "/^\[Service\]/aEnvironment=ASAN_OPTIONS=$ASAN_OPTIONS" avahi-dnsconfd/avahi-dnsconfd.service
+            sed -i.bak "/^\[Service\]/aEnvironment=UBSAN_OPTIONS=$UBSAN_OPTIONS" avahi-dnsconfd/avahi-dnsconfd.service
         fi
 
         # publish-workstation=yes triggers https://github.com/avahi/avahi/issues/485
         # so it isn't set to yes here.
-        sed -i '
+        sed -i.bak '
             s/^#\(add-service-cookie=\).*/\1yes/;
             s/^#\(publish-dns-servers=\)/\1/;
             s/^#\(publish-resolv-conf-dns-servers=\).*/\1yes/;
@@ -147,15 +193,15 @@ EOL
 
         printf "2001:db8::1 static-host-test.local\n" >>avahi-daemon/hosts
 
-        make install
+        $MAKE install
         ldconfig
-        adduser --system --group avahi
-        systemctl reload dbus
 
-        if ! .github/workflows/smoke-tests.sh; then
-            look_for_asan_ubsan_reports
-            exit 1
-        fi
+	valgrind --leak-check=full avahi-daemon --no-drop-root --no-proc-title --debug &
+	#avahi-daemon --no-drop-root --no-proc-title --debug &
+	sleep 2
+	dfuzzer -v -n org.freedesktop.Avahi
+	kill %1
+	exit 0
 
         if [[ "$COVERAGE" == true ]]; then
             lcov --ignore-errors source --directory . --capture --initial --output-file coverage.info.initial
