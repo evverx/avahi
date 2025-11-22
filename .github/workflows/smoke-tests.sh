@@ -95,6 +95,8 @@ install_nss_mdns() {
 
     git clone https://github.com/avahi/nss-mdns "$NSS_MDNS_BUILD_DIR"
     pushd "$NSS_MDNS_BUILD_DIR"
+    git fetch origin pull/106/head:PR106
+    git checkout PR106
     autoreconf -ivf
     configure_args=("--enable-tests")
     if [[ "$OS" == FreeBSD ]]; then
