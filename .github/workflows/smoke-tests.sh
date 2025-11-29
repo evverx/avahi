@@ -95,6 +95,8 @@ install_nss_mdns() {
 
     git clone https://github.com/avahi/nss-mdns "$NSS_MDNS_BUILD_DIR"
     pushd "$NSS_MDNS_BUILD_DIR"
+    git fetch origin pull/111/head:PR
+    git checkout PR
     autoreconf -ivf
     configure_args=("--enable-tests")
     if [[ "$OS" == FreeBSD ]]; then
@@ -136,9 +138,7 @@ install_nss_mdns() {
         exit 1
     fi
 
-    # make distcheck fails on FreeBSD
-    # https://github.com/avahi/nss-mdns/issues/103
-    if [[ "$DISTCHECK" == true && "$OS" != FreeBSD ]]; then
+    if [[ "$DISTCHECK" == true ]]; then
         $MAKE distcheck V=1
     fi
 
@@ -173,11 +173,7 @@ run_nss_tests() {
     for h in ipv4.local ipv6.local ipv46.local; do
         run "$NSS_MDNS_BUILD_DIR/avahi-test" "$h"
 
-        # nss-test fails under Valgrind on FreeBSD
-        # https://github.com/avahi/nss-mdns/issues/105
-        if [[ "$OS" != FreeBSD || "$VALGRIND" != true ]]; then
-            run "$NSS_MDNS_BUILD_DIR/nss-test" "$h"
-        fi
+        run "$NSS_MDNS_BUILD_DIR/nss-test" "$h"
 
         if LD_PRELOAD="" avahi-daemon -c; then
             run getent hosts "$h"
