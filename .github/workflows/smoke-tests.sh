@@ -257,6 +257,8 @@ if [[ "$OS" != freebsd || "$VALGRIND" != true ]]; then
 fi
 
 run ./avahi-core/avahi-test
+export -f run
+unshare -n bash -c 'run ./avahi-core/avahi-test'
 run ./avahi-core/querier-test
 
 for test_case in self_loop retransmit_cname one_normal one_loop two_normal two_loop two_loop_inner two_loop_inner2 three_normal three_loop diamond cname_answer_diamond cname_answer; do
