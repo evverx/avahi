@@ -12,8 +12,8 @@ msgstr ""
 "Project-Id-Version: Avahi\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-10-10 13:24+0200\n"
-"PO-Revision-Date: 2026-02-24 14:58+0000\n"
-"Last-Translator: Daniel Rusek <mail@asciiwolf.com>\n"
+"PO-Revision-Date: 2026-02-25 08:46+0000\n"
+"Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
 "Language-Team: Czech <https://translate.fedoraproject.org/projects/avahi/"
 "master/cs/>\n"
 "Language: cs\n"
@@ -376,11 +376,11 @@ msgstr ""
 
 #: ../avahi-ui/avahi-ui.c:242
 msgid "Address family"
-msgstr "Generace adres"
+msgstr "Rodina adresy"
 
 #: ../avahi-ui/avahi-ui.c:242
 msgid "The address family for host name resolution"
-msgstr "Generace adresy pro překlad názvu hostitele"
+msgstr "Rodina adresy pro překlad názvu hostitele"
 
 #: ../avahi-ui/avahi-ui.c:326
 #, c-format
@@ -439,12 +439,12 @@ msgstr "Nepodařilo se vytvořit procházení pro %s: %s"
 #: ../avahi-ui/avahi-ui.c:907
 #, c-format
 msgid "Failed to create resolver for %s of type %s in domain %s: %s"
-msgstr "Nepodařilo se vytvoření překladače pro %s typu %s v doméně %s: %s"
+msgstr "Nepodařilo se vytvořit překladač pro %s typu %s v doméně %s: %s"
 
 #: ../avahi-ui/avahi-ui.c:982
 #, c-format
 msgid "Failed to create domain browser: %s"
-msgstr "Nepodařilo se vytvoření prohledávání v doméně: %s"
+msgstr "Nepodařilo se vytvořit prohledávání v doméně: %s"
 
 #: ../avahi-ui/avahi-ui.c:993
 msgid "Change domain"
@@ -834,17 +834,17 @@ msgstr ""
 #: ../avahi-utils/avahi-resolve.c:299 ../avahi-utils/avahi-set-host-name.c:181
 #, c-format
 msgid "Failed to create host name resolver: %s\n"
-msgstr "Nezdařilo se vytvořit překladač pro názvy hostitelů: %s\n"
+msgstr "Nepodařilo se vytvořit překladač pro názvy hostitelů: %s\n"
 
 #: ../avahi-utils/avahi-resolve.c:309
 #, c-format
 msgid "Failed to parse address '%s'\n"
-msgstr "Nezdařilo se zpracovat adresu „%s“\n"
+msgstr "Nepodařilo se zpracovat adresu „%s“\n"
 
 #: ../avahi-utils/avahi-resolve.c:314
 #, c-format
 msgid "Failed to create address resolver: %s\n"
-msgstr "Nezdařilo se vytvořit překladač pro adresu: %s\n"
+msgstr "Nepodařilo se vytvořit překladač pro adresu: %s\n"
 
 #: ../avahi-utils/avahi-set-host-name.c:73
 #, c-format
