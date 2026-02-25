@@ -5,15 +5,15 @@
 # Translators:
 # Jiří Vírava <appukonrad@gmail.com>, 2012
 # Marek Černocký <marek@manet.cz>, 2018.
-# Daniel Rusek <mail@asciiwolf.com>, 2025.
+# Daniel Rusek <mail@asciiwolf.com>, 2025, 2026.
 # Pavel Borecki <pavel.borecki@gmail.com>, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: Avahi\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-10-10 13:24+0200\n"
-"PO-Revision-Date: 2026-02-22 14:58+0000\n"
-"Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
+"PO-Revision-Date: 2026-02-24 14:58+0000\n"
+"Last-Translator: Daniel Rusek <mail@asciiwolf.com>\n"
 "Language-Team: Czech <https://translate.fedoraproject.org/projects/avahi/"
 "master/cs/>\n"
 "Language: cs\n"
@@ -461,7 +461,7 @@ msgstr "_Zrušit"
 
 #: ../avahi-ui/avahi-ui.c:1048
 msgid "_OK"
-msgstr "_OK"
+msgstr "_Budiž"
 
 #: ../avahi-ui/avahi-ui.c:1134
 msgid "Initializing..."
