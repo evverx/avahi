@@ -164,7 +164,7 @@ case "$1" in
         PKG_PATH="https://cdn.NetBSD.org/pub/pkgsrc/packages/NetBSD/$(uname -p)/$(uname -r|sed 's/_.*//')/All/" \
         PKG_RCD_SCRIPTS=yes \
             pkg_add -u autoconf automake clang compiler-rt dbus drill expat gettext git glib gmake intltool libdaemon libtool \
-            meson pkgconf socat wget
+            meson pkgconf socat wget python311
         install_dfuzzer
         install_radamsa
         ;;
@@ -184,10 +184,19 @@ case "$1" in
         ;;
     install-build-deps-openbsd)
         PKG_PATH="installpath:https://cdn.openbsd.org/%m" \
-        pkg_add -U "autoconf-${AUTOCONF_VERSION}p0" "automake-${AUTOMAKE_VERSION}.1" dbus drill git glib2 \
+        pkg_add -U dbus drill git glib2 \
             gmake intltool libdaemon libtool socat xmltoman
         ;;
     build)
+        ifconfig || true
+        git clone https://github.com/secdev/scapy
+	cd scapy
+	py=python3
+	if [[ "$OS" == netbsd ]]; then
+	    py=python3.11
+	fi
+	"$py" -c 'from scapy.all import *; print(conf.ifaces); print(conf.route); print(conf.route6)'
+	exit 0
         if [[ "$OS" == freebsd ]]; then
             # Do what USES="localbase:ldflags" do in FreeBSD Ports, namely:
             # - Add /usr/local/include to the compiler's search path
