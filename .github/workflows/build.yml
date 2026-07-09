@@ -119,7 +119,6 @@ jobs:
       - name: Run commands
         run: |
           sudo -E .github/workflows/build.sh install-build-deps-${{ matrix.os }}
-          sudo -E .github/workflows/build.sh build
 
   alpine:
     runs-on: ubuntu-26.04
