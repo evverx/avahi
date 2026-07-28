@@ -99,7 +99,18 @@ coredumps_detected() {
 
 install_dfuzzer() {
     git clone https://github.com/dbus-fuzzer/dfuzzer
-    (cd dfuzzer && meson setup build && ninja -C build install)
+    pushd dfuzzer
+    meson setup build
+
+    if [[ "$OS" == alpine && "$VALGRIND" == true ]]; then
+        cat <<'EOL' >src/dfuzzer.conf
+[org.freedesktop.Avahi]
+GetNetworkInterfaceIndexByName https://github.com/avahi/avahi/issues/763
+EOL
+    fi
+
+    ninja -C build install
+    popd
 }
 
 install_radamsa() {
@@ -192,7 +203,8 @@ case "$1" in
     install-build-deps-openbsd)
         PKG_PATH="installpath:https://cdn.openbsd.org/%m" \
         pkg_add -U "autoconf-${AUTOCONF_VERSION}p0" "automake-${AUTOMAKE_VERSION}.1" dbus drill git glib2 \
-            gmake intltool libdaemon libtool socat xmltoman
+            gmake intltool libdaemon libtool meson socat xmltoman
+        install_dfuzzer
         ;;
     build)
         if [[ "$OS" == freebsd ]]; then
