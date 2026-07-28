@@ -380,6 +380,10 @@ fi
 if [[ "$WITH_SYSTEMD" == false ]]; then
     run avahi-dnsconfd --kill
 
+    if [[ "$WITH_DBUS" == true ]]; then
+        run dfuzzer -v -n org.freedesktop.Avahi
+    fi
+
     pid=$(cat "$avahi_daemon_pid_file")
     run avahi-daemon --kill
 
