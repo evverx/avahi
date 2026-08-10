@@ -92,10 +92,10 @@ jobs:
           - { CC: "clang", ASAN_UBSAN: "false", VALGRIND: "true" }
         include:
           - os: 'netbsd'
-            version: '10.1'
+            version: '11.0'
             env: { CC: "gcc" }
           - os: 'netbsd'
-            version: '10.1'
+            version: '11.0'
             env: { CC: "clang", ASAN_UBSAN: "true" }
           - os: 'omnios'
             version: 'r151058'
@@ -110,7 +110,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Start VM
-        uses: cross-platform-actions/action@5ea7e8e4677bd726033a10b094ba1c5762b15dee # v1.3.0
+        uses: cross-platform-actions/action@24ef01df165c76df1ed2b9f9e9212e78dc2fc963 # v1.4.0
         with:
           operating_system: ${{ matrix.os }}
           version: ${{ matrix.version }}
