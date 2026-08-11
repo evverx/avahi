@@ -188,8 +188,8 @@ case "$1" in
         ;;
     install-build-deps-omnios)
         # https://pkgsrc.smartos.org/install-on-illumos/
-        BOOTSTRAP_TAR="bootstrap-trunk-x86_64-20240116.tar.gz"
-        BOOTSTRAP_SHA="4d92a333587d9dcc669ff64264451ca65da701b7"
+        BOOTSTRAP_TAR="bootstrap-trunk-x86_64-20260811.tar.gz"
+        BOOTSTRAP_SHA="e5e620ade4b45695aa385aea25227e94f49f078f"
 
         curl -O "https://pkgsrc.smartos.org/packages/SmartOS/bootstrap/${BOOTSTRAP_TAR}"
         [[ "${BOOTSTRAP_SHA}" == "$(/bin/digest -a sha1 ${BOOTSTRAP_TAR})" ]]
