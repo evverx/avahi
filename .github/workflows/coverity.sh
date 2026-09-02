@@ -20,7 +20,7 @@
 set -eux
 
 COVERITY_SCAN_TOOL_BASE="/tmp/coverity-scan-analysis"
-COVERITY_SCAN_PROJECT_NAME="avahi-daemon"
+COVERITY_SCAN_PROJECT_NAME="dbus-daemon"
 
 function coverity_install_script {
     local platform tool_url tool_archive
