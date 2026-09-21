@@ -153,6 +153,9 @@ trim_sandbox() {
     sed -i.bak 's/^\(Lock\|Memory\|NoNew\|Private\|Protect\|Restart\|Restrict\|SystemCall\)/#\1/' "$1"
 }
 
+ifconfig || true
+netstat -rn || true
+
 case "$1" in
     install-build-deps)
         sed -i 's/^\(Types: deb\)$/\1 deb-src/' "/etc/apt/sources.list.d/$OS.sources"
@@ -177,16 +180,21 @@ case "$1" in
         cp /etc/pkg/FreeBSD.conf /usr/local/etc/pkg/repos/FreeBSD.conf
         sed -i.bak -e 's|/quarterly|/latest|' /usr/local/etc/pkg/repos/FreeBSD.conf
 
-        pkg install -y gettext-runtime gettext-tools gmake intltool \
-            gobject-introspection pkgconf expat libdaemon dbus-glib dbus gdbm \
-            libevent glib automake libtool libinotify qt5-core qt5-buildtools \
-            gtk3 python3 mono git socat \
-            valgrind dfuzzer check radamsa wget
-        python_version=$(python3 -c 'import platform; print("".join(platform.python_version().split(".")[0:2]))')
-        pkg install -y "py${python_version}-pygobject" "py${python_version}-dbus" \
-            "py${python_version}-gdbm"
-        # some deps pull in avahi itself, remove it
-        pkg remove -fy avahi-app
+        PYTHON=python3.12
+        pv=312
+        pkg install -y git "python$pv" "py$pv-brotli" "py$pv-cryptography" "py$pv-ipython" \
+            "py$pv-zstandard" "py$pv-tkinter" rust tcpdump wireshark
+        "$PYTHON" -m venv --system-site-packages .venv
+        source .venv/bin/activate
+        pip install scapy-rpc cbor2
+
+        git clone https://github.com/evverx/scapy
+        cd scapy
+        git fetch origin refs/pull/2/head:PR
+        git checkout PR
+        "$PYTHON" -c 'from scapy.all import *; print(conf.ifaces); print(conf.route); print(conf.route6)'
+        OPENSSL_CONF=$("$PYTHON" ./.config/ci/openssl.py) ./test/run_tests -c ./test/configs/bsd.utsc -K automotive_comm -K netaccess
+        exit 0
         ;;
     install-build-deps-Alpine)
         apk add autoconf automake clang coreutils curl dbus dbus-dev expat-dev gcc g++ \
@@ -203,10 +211,21 @@ case "$1" in
         # https://www.netbsd.org/mirrors/#pkgsrc-main
         PKG_PATH="https://ftp.jaist.ac.jp/$path;https://ftp.NetBSD.org/$path;https://cdn.NetBSD.org/$path" \
         PKG_RCD_SCRIPTS=yes \
-            pkg_add -u autoconf automake clang compiler-rt dbus expat gettext git glib gmake intltool libdaemon libtool \
-            meson pkgconf python314 socat wget
-        install_dfuzzer
-        install_radamsa
+            pkg_add -u pkgin
+
+        PYTHON=python3.14
+        pv=314
+        pkgin -y install git "python$pv" "py$pv-brotli" "py$pv-cbor2" "py$pv-cryptography" "py$pv-ipython" \
+            "py$pv-pip" "py$pv-zstandard" "py$pv-Tk" tcpdump
+        "$PYTHON" -m pip install scapy-rpc
+
+        git clone https://github.com/evverx/scapy
+        cd scapy
+        git fetch origin refs/pull/2/head:PR
+        git checkout PR
+        "$PYTHON" -c 'from scapy.all import *; print(conf.ifaces); print(conf.route); print(conf.route6)'
+        OPENSSL_CONF=$("$PYTHON" ./.config/ci/openssl.py) ./test/run_tests -c ./test/configs/bsd.utsc -K icmp_firewall -K automotive_comm -K tshark
+        exit 0
         ;;
     install-build-deps-omnios)
         # https://pkgsrc.smartos.org/install-on-illumos/
@@ -217,16 +236,39 @@ case "$1" in
         [[ "${BOOTSTRAP_SHA}" == "$(/bin/digest -a sha1 ${BOOTSTRAP_TAR})" ]]
         tar -zxpf "${BOOTSTRAP_TAR}" -C /
 
-        pkg_add -u autoconf automake expat gettext git glib2 gmake intltool libdaemon libtool \
-            meson pkgconf socat
-        pkg install gcc14
-        install_dfuzzer
+        PYTHON=python3.14
+        pv=314
+        pkgin -y install git "python$pv" "py$pv-brotli" "py$pv-cbor2" "py$pv-cryptography" "py$pv-ipython" \
+            "py$pv-zstandard" "py$pv-Tk" tcpdump
+        "$PYTHON" -m venv --system-site-packages .venv
+        source .venv/bin/activate
+        pip install scapy-rpc
+
+        git clone https://github.com/evverx/scapy
+        cd scapy
+        git fetch origin refs/pull/2/head:PR
+        git checkout PR
+        "$PYTHON" -c 'from scapy.all import *; print(conf.ifaces); print(conf.route); print(conf.route6)'
+        OPENSSL_CONF=$("$PYTHON" ./.config/ci/openssl.py) ./test/run_tests -c ./test/configs/solaris.utsc -K netaccess -K icmp_firewall -K automotive_comm -K tshark
+        exit 0
         ;;
     install-build-deps-openbsd)
+        PYTHON=python3
+        pv=3
+
         PKG_PATH="installpath:https://cdn.openbsd.org/%m" \
-        pkg_add -U "autoconf-${AUTOCONF_VERSION}p0" "automake-${AUTOMAKE_VERSION}.1" dbus git glib2 \
-            gmake intltool libdaemon libtool meson socat xmltoman
-        install_dfuzzer
+        pkg_add -U git "py$pv-brotli" "py$pv-cbor2" "py$pv-cryptography" ipython \
+            "py$pv-zstandard"
+        "$PYTHON" -m venv --system-site-packages .venv
+        source .venv/bin/activate
+        pip install scapy-rpc
+
+        git clone https://github.com/evverx/scapy
+        cd scapy
+        git fetch origin refs/pull/2/head:PR
+        git checkout PR
+        "$PYTHON" -c 'from scapy.all import *; print(conf.ifaces); print(conf.route); print(conf.route6)'
+        ./test/run_tests -c ./test/configs/bsd.utsc -K automotive_comm -K crypto -K tshark -K libressl -K netaccess -K imports
         ;;
     build)
         if [[ "$OS" == freebsd ]]; then
