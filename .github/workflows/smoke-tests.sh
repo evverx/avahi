@@ -302,7 +302,9 @@ run ./avahi-core/avahi-test
 run ./avahi-core/querier-test
 
 for test_case in self_loop retransmit_cname one_normal one_loop two_normal two_loop two_loop_inner two_loop_inner2 three_normal three_loop diamond both_directions cname_answer_diamond cname_answer; do
-    run ./avahi-core/cname-test $test_case
+    for i in {1..10}; do
+        run ./avahi-core/cname-test $test_case
+    done
 done
 
 if [[ "$OS" != openbsd ]]; then

@@ -13,66 +13,6 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    runs-on: ${{ matrix.runner }}
-    concurrency:
-      group: ${{ github.workflow }}-${{ toJSON(matrix.env) }}-${{ matrix.runner }}-${{ github.ref }}
-      cancel-in-progress: true
-    strategy:
-      fail-fast: false
-      matrix:
-        runner: [ubuntu-26.04, ubuntu-26.04-arm]
-        env:
-          - { CC: "gcc", DISTCHECK: "true", VALGRIND: "true" }
-          - { CC: "gcc", ASAN_UBSAN: "true" }
-          - { CC: "gcc", ASAN_UBSAN: "false", CFLAGS: "-g -O2 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 -fno-omit-frame-pointer" }
-          - { CC: "clang", ASAN_UBSAN: "false" }
-          - { CC: "clang", ASAN_UBSAN: "true" }
-        include:
-          - runner: ubuntu-26.04
-            env: { CC: "clang", ASAN_UBSAN: "true", ADDITIONAL_AUTOGEN_ARGS: "--disable-dbus --disable-libsystemd --without-systemdsystemunitdir" }
-          - runner: ubuntu-26.04
-            env: { CC: "gcc", VALGRIND: "true", ADDITIONAL_AUTOGEN_ARGS: "--disable-dbus --disable-libsystemd --without-systemdsystemunitdir" }
-          - runner: ubuntu-26.04
-            env: { CC: "gcc", VALGRIND: "true", CFLAGS: "-g -O0 -DNDEBUG" }
-          - runner: ubuntu-26.04
-            env: { CC: "clang", ASAN_UBSAN: "true", CFLAGS: "-g -O0 -DNDEBUG -ftrivial-auto-var-init=pattern" }
-    env: ${{ matrix.env }}
-    steps:
-      - name: Repository checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - run: sudo update-alternatives --set sudo /usr/bin/sudo.ws
-      - run: sudo -E .github/workflows/build.sh install-build-deps
-      - run: sudo -E .github/workflows/build.sh build
-  coverage:
-    if: github.repository == 'avahi/avahi'
-    runs-on: ubuntu-26.04
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
-    permissions:
-      contents: read
-      checks: write
-    env:
-      CC: "gcc"
-      COVERAGE: "true"
-    steps:
-      - name: Repository checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - run: sudo update-alternatives --set sudo /usr/bin/sudo.ws
-      - run: sudo -E .github/workflows/build.sh install-build-deps
-      - run: sudo -E .github/workflows/build.sh build
-      - name: Coveralls
-        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329 # v2.3.8
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./coverage.info
-          format: lcov
-
   bsd:
     runs-on: ubuntu-26.04
     defaults:
@@ -91,6 +31,12 @@ jobs:
           - { CC: "clang", ASAN_UBSAN: "true", DISTCHECK: "false" }
           - { CC: "clang", ASAN_UBSAN: "false", VALGRIND: "true" }
         include:
+          - os: 'netbsd'
+            version: '10.1'
+            env: { CC: "gcc" }
+          - os: 'netbsd'
+            version: '10.1'
+            env: { CC: "clang", ASAN_UBSAN: "true" }
           - os: 'netbsd'
             version: '11.0'
             env: { CC: "gcc" }
@@ -120,28 +66,3 @@ jobs:
         run: |
           sudo -E .github/workflows/build.sh install-build-deps-${{ matrix.os }}
           sudo -E .github/workflows/build.sh build
-
-  alpine:
-    runs-on: ubuntu-26.04
-    container:
-      image: alpine
-      env: ${{ matrix.env }}
-      options: --init
-    concurrency:
-      group: ${{ github.workflow }}-${{ toJSON(matrix.env) }}-${{ github.ref }}-alpine
-      cancel-in-progress: true
-    strategy:
-      fail-fast: false
-      matrix:
-        env:
-          - { CC: "gcc", VALGRIND: "true", DISTCHECK: "true" }
-          - { CC: "clang", VALGRIND: "false", DISTCHECK: "false" }
-    steps:
-      - name: Repository checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - run: |
-          apk add bash
-          .github/workflows/build.sh install-build-deps-Alpine
-          .github/workflows/build.sh build
