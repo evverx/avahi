@@ -46,6 +46,8 @@ dump_journal() {
         else
             journalctl -b -t avahi-daemon --no-pager
         fi
+    elif [[ -r /var/adm/messages ]]; then
+        cat /var/adm/messages
     elif [[ -r /var/log/syslog ]]; then
         cat /var/log/syslog
     elif [[ -r /var/log/messages ]]; then
@@ -398,6 +400,7 @@ if [[ "$WITH_SYSTEMD" == false ]]; then
         fi
     fi
 
+    dump_journal
     exit 0
 fi
 
