@@ -217,8 +217,12 @@ case "$1" in
         [[ "${BOOTSTRAP_SHA}" == "$(/bin/digest -a sha1 ${BOOTSTRAP_TAR})" ]]
         tar -zxpf "${BOOTSTRAP_TAR}" -C /
 
-        pkg_add -u autoconf automake expat gettext git glib2 gmake intltool libdaemon libtool \
+        pkgin -y update
+        pkgin -y install pkgin
+        pkgin -y upgrade
+        pkgin -y install autoconf automake expat gettext git glib2 gmake intltool libdaemon libtool \
             meson pkgconf socat
+        pkg update
         pkg install gcc14
         install_dfuzzer
         ;;
